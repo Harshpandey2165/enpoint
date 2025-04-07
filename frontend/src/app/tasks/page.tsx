@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Button } from '@/components/ui/Button';
-import { TaskDialog } from '../../../components/TaskDialog';
+import { TaskDialog } from '@/components/TaskDialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 type Task = {
