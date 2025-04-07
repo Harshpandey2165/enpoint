@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TasksModule } from 'src/tasks/tasks.module';
 import { UsersModule } from 'src/users/users.module';
 import { AuthModule } from 'src/auth/auth.module';
+import { HealthModule } from 'src/health/health.module';
 import { getTypeOrmConfig } from 'src/config/typeorm.config';
 
 @Module({
@@ -26,6 +27,7 @@ import { getTypeOrmConfig } from 'src/config/typeorm.config';
     TasksModule,
     UsersModule,
     AuthModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

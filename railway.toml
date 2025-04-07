@@ -1,0 +1,11 @@
+[services]
+main = { repository = "https://github.com/Harshpandey2165/enpoint", directory = "backend" }
+frontend = { repository = "https://github.com/Harshpandey2165/enpoint", directory = "frontend" }
+
+[deployments]
+main = { service = "main" }
+frontend = { service = "frontend" }
+
+[healthchecks]
+main = "/health"
+frontend = "/health"
