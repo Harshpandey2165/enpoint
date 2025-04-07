@@ -14,7 +14,7 @@ export async function GET() {
         'Cache-Control': 'no-store'
       },
     });
-  } catch (error) {
+  } catch {
     return new Response(JSON.stringify({
       status: 'warning',
       message: 'Backend health check failed',
