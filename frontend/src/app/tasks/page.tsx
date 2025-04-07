@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Button } from '@/components/ui/Button';
-import { TaskDialog } from '@/components/TaskDialog';
+import { TaskDialog } from '../../../components/TaskDialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 type Task = {
@@ -79,7 +79,7 @@ export default function TasksPage() {
     },
   });
 
-  const handleDragEnd = (result: any) => {
+  const handleDragEnd = (result: import('react-beautiful-dnd').DropResult) => {
     if (!result.destination) return;
 
     const taskId = result.draggableId;
