@@ -4,5 +4,4 @@ export interface Task {
   description: string;
   status: 'todo' | 'in-progress' | 'done';
   created_at: string;
-  user_id: string;
 }
