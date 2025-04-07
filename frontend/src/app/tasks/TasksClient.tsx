@@ -5,33 +5,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Task } from './types';
 import { Button } from '@/components/ui/Button';
 import { TaskDialog } from '@/components/TaskDialog';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragOverlay,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
-  restrictToVerticalAxis,
-  restrictToWindowEdges,
-} from '@dnd-kit/modifiers';
-
-interface TaskStatus {
-  id: string;
-  title: string;
-  description: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
-}
+import { DragEndEvent } from '@dnd-kit/core';
 
 interface FetchTasksResponse {
   tasks: Task[];
@@ -125,165 +99,60 @@ const useDeleteTaskMutation = () => {
 
 export function TasksClient() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
   const queryClient = useQueryClient();
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   const { data: tasks = [], error: fetchError, isLoading } = useTasksQuery();
-
   const createTaskMutation = useCreateTaskMutation();
   const updateTaskMutation = useUpdateTaskMutation();
   const deleteTaskMutation = useDeleteTaskMutation();
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
+    
     if (over && active.id !== over.id) {
-      const activeTask = tasks.find((task: Task) => task.id === active.id);
-      const overTask = tasks.find((task: Task) => task.id === over.id);
-
-      if (activeTask && overTask && activeTask.status !== overTask.status) {
-        updateTaskMutation.mutate({ taskId: activeTask.id, status: overTask.status });
+      const oldIndex = tasks.findIndex(task => task.id === active.id);
+      const newIndex = tasks.findIndex(task => task.id === over.id);
+      
+      if (oldIndex >= 0 && newIndex >= 0) {
+        const newTasks = [...tasks];
+        const [removed] = newTasks.splice(oldIndex, 1);
+        newTasks.splice(newIndex, 0, removed);
+        
+        // Update the order in the backend
+        newTasks.forEach((task, index) => {
+          updateTaskMutation.mutateAsync({
+            taskId: task.id,
+            status: task.status
+          });
+        });
       }
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
+  const handleTaskClick = (task: Task) => {
+    setIsDialogOpen(true);
   };
 
   const handleDialogClose = () => {
     setIsDialogOpen(false);
   };
 
-  useEffect(() => {
-    if (fetchError) {
-      console.error('Error fetching tasks:', fetchError);
-    }
-  }, [fetchError]);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/login';
-    }
-  }, []);
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="bg-gray-50 border border-gray-200 text-gray-700 px-4 py-3 rounded">
-            <p>Loading...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
   if (fetchError) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            <p>Error fetching tasks: {fetchError.message}</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <div>Error: {fetchError.message}</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-900">Task Management</h1>
-          <div className="flex gap-4">
-            <Button
-              onClick={() => {
-                setSelectedTask(null);
-                setIsDialogOpen(true);
-              }}
-            >
-              Add Task
-            </Button>
-            <Button variant="secondary" onClick={handleLogout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-          modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {['TODO', 'IN_PROGRESS', 'DONE'].map((status) => (
-              <div key={status} className="space-y-4">
-                <h3 className="text-lg font-semibold">{status.replace('_', ' ')}</h3>
-                <div className="space-y-2">
-                  <SortableContext
-                    items={tasks.filter((task: Task) => task.status === status).map(task => task.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {tasks
-                      .filter((task: Task) => task.status === status)
-                      .map((task) => (
-                        <div
-                          key={task.id}
-                          id={task.id}
-                          className="p-4 bg-white rounded-lg shadow cursor-pointer hover:shadow-md transition-shadow"
-                          data-id={task.id}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-medium">{task.title}</h3>
-                              <p className="text-sm text-gray-500 mt-1">{task.description}</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => {
-                                  setSelectedTask(task);
-                                  setIsDialogOpen(true);
-                                }}
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => deleteTaskMutation.mutateAsync(task.id)}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </SortableContext>
-                </div>
-              </div>
-            ))}
-          </div>
-        </DndContext>
-      </main>
-
+    <div className="space-y-4">
+      <Button onClick={() => setIsDialogOpen(true)}>Create Task</Button>
+      
       <TaskDialog
         isOpen={isDialogOpen}
         onClose={handleDialogClose}
-        task={activeTask}
+        task={null}
         onTaskCreated={() => {
           handleDialogClose();
           queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
@@ -293,6 +162,26 @@ export function TasksClient() {
           queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
         }}
       />
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {tasks.map((task) => (
+          <div
+            key={task.id}
+            className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+            onClick={() => handleTaskClick(task)}
+          >
+            <h3 className="font-semibold">{task.title}</h3>
+            <p className="text-gray-600">{task.description}</p>
+            <span className={`px-2 py-1 rounded-full text-sm ${
+              task.status === 'TODO' ? 'bg-blue-100 text-blue-800' :
+              task.status === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {task.status}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
