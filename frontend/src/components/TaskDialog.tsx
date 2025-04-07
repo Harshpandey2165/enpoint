@@ -24,7 +24,7 @@ export function TaskDialog({ isOpen, onClose, task }: TaskDialogProps) {
 
   const createTaskMutation = useMutation({
     mutationFn: async (newTask: Omit<Task, 'id'>) => {
-      const res = await fetch('http://localhost:3001/tasks', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ export function TaskDialog({ isOpen, onClose, task }: TaskDialogProps) {
 
   const updateTaskMutation = useMutation({
     mutationFn: async (updatedTask: Partial<Task> & { id: string }) => {
-      const res = await fetch(`http://localhost:3001/tasks/${updatedTask.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${updatedTask.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

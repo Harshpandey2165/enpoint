@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TasksModule } from './tasks/tasks.module';
-import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
-import { getTypeOrmConfig } from './config/typeorm.config';
+import { TasksModule } from 'src/tasks/tasks.module';
+import { UsersModule } from 'src/users/users.module';
+import { AuthModule } from 'src/auth/auth.module';
+import { getTypeOrmConfig } from 'src/config/typeorm.config';
 
 @Module({
   imports: [
