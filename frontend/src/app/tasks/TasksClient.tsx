@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Task } from './types';
 import { Button } from '@/components/ui/Button';
@@ -105,29 +105,6 @@ export function TasksClient() {
   const createTaskMutation = useCreateTaskMutation();
   const updateTaskMutation = useUpdateTaskMutation();
   const deleteTaskMutation = useDeleteTaskMutation();
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id) {
-      const oldIndex = tasks.findIndex(task => task.id === active.id);
-      const newIndex = tasks.findIndex(task => task.id === over.id);
-      
-      if (oldIndex >= 0 && newIndex >= 0) {
-        const newTasks = [...tasks];
-        const [removed] = newTasks.splice(oldIndex, 1);
-        newTasks.splice(newIndex, 0, removed);
-        
-        // Update the order in the backend
-        newTasks.forEach((task, index) => {
-          updateTaskMutation.mutateAsync({
-            taskId: task.id,
-            status: task.status
-          });
-        });
-      }
-    }
-  };
 
   const handleTaskClick = (task: Task) => {
     setIsDialogOpen(true);
