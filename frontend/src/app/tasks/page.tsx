@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TasksClient } from './TasksClient';
-import { TasksServer } from './TasksServer';
 
 export default function TasksPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);

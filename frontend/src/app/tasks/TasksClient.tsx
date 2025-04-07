@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Task } from './types';
 import { Button } from '@/components/ui/Button';
 import { TaskDialog } from '@/components/TaskDialog';
@@ -13,22 +13,17 @@ export function TasksClient() {
 
   const { data: tasks = [], error: fetchError } = useQuery({
     queryKey: ['tasks'] as const,
-    queryFn: async (): Promise<Task[]> => {
+    queryFn: async () => {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`);
       if (!response.ok) {
         throw new Error('Failed to fetch tasks');
       }
-      return response.json();
+      return response.json() as Promise<Task[]>;
     },
     onError: (error: Error) => {
       console.error('Error fetching tasks:', error);
     }
-  }) as UseQueryResult<Task[]>;
-
-  // Type guard for filtering tasks
-  const isTask = (item: any): item is Task => {
-    return item && typeof item === 'object' && 'id' in item && 'status' in item;
-  };
+  });
 
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: Omit<Task, 'id' | 'created_at'>) => {
@@ -154,8 +149,8 @@ export function TasksClient() {
               <h3 className="text-lg font-semibold">{status.replace('-', ' ').toUpperCase()}</h3>
               <div className="space-y-2">
                 {tasks
-                  .filter((task: Task): task is Task => isTask(task) && task.status === status)
-                  .map((task: Task) => (
+                  .filter((task): task is Task => task.status === status)
+                  .map((task) => (
                     <div
                       key={task.id}
                       className="p-4 bg-white rounded-lg shadow"
