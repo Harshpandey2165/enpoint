@@ -1,3 +1,10 @@
+/**
+ * Login Page
+ *
+ * This page allows users to sign in to their account.
+ *
+ * @returns {JSX.Element} The login page component.
+ */
 'use client';
 
 import { useState } from 'react';
@@ -6,11 +13,25 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
+/**
+ * Login Page Component
+ *
+ * This component handles the login form submission and redirects the user to the tasks page upon successful login.
+ *
+ * @returns {JSX.Element} The login page component.
+ */
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  /**
+   * Handle Form Submission
+   *
+   * This function handles the login form submission, sends a POST request to the API, and redirects the user to the tasks page upon successful login.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} e The form submission event.
+   */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
