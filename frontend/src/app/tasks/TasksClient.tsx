@@ -20,7 +20,7 @@ const columns = {
   DONE: { title: 'Done', color: 'bg-green-50' },
 };
 
-export default function TasksPage() {
+export default function TasksClient() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
