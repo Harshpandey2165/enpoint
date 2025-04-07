@@ -15,9 +15,9 @@ export interface Task {
 interface TaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  task: Task | null;
-  onTaskCreated: () => void;
-  onTaskUpdated: () => void;
+  task?: Task;
+  onTaskCreated: (taskData: Omit<Task, 'id' | 'created_at'>) => void;
+  onTaskUpdated: (taskId: string, status: Task['status']) => void;
 }
 
 export function TaskDialog({
@@ -35,64 +35,19 @@ export function TaskDialog({
     setStatus(e.target.value as Task['status']);
   };
 
-  const updateTaskMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${task?.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          status,
-        }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update task');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      onTaskUpdated();
-      onClose();
-    },
-  });
-
-  const createTaskMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          status,
-        }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to create task');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      onTaskCreated();
-      onClose();
-    },
-  });
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (task) {
-      await updateTaskMutation.mutateAsync();
+      await onTaskUpdated(task.id, status);
     } else {
-      await createTaskMutation.mutateAsync();
+      const taskData: Omit<Task, 'id' | 'created_at'> = {
+        title,
+        description,
+        status,
+      };
+      await onTaskCreated(taskData);
     }
+    onClose();
   };
 
   return (

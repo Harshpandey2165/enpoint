@@ -98,16 +98,35 @@ const useDeleteTaskMutation = () => {
 
 export function TasksClient() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
   const queryClient = useQueryClient();
 
   const { data: tasks = [], error: fetchError, isLoading } = useTasksQuery();
+  const createTaskMutation = useCreateTaskMutation();
+  const updateTaskMutation = useUpdateTaskMutation();
+  const deleteTaskMutation = useDeleteTaskMutation();
 
   const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
     setIsDialogOpen(true);
   };
 
   const handleDialogClose = () => {
     setIsDialogOpen(false);
+    setSelectedTask(undefined);
+  };
+
+  const handleTaskCreate = (taskData: Omit<Task, 'id' | 'created_at'>) => {
+    createTaskMutation.mutate(taskData);
+    handleDialogClose();
+  };
+
+  const handleTaskUpdate = (taskId: string, status: Task['status']) => {
+    updateTaskMutation.mutate({ taskId, status });
+  };
+
+  const handleTaskDelete = (taskId: string) => {
+    deleteTaskMutation.mutate(taskId);
   };
 
   if (isLoading) {
@@ -120,20 +139,17 @@ export function TasksClient() {
 
   return (
     <div className="space-y-4">
-      <Button onClick={() => setIsDialogOpen(true)}>Create Task</Button>
+      <Button onClick={() => {
+        setSelectedTask(undefined);
+        setIsDialogOpen(true);
+      }}>Create Task</Button>
       
       <TaskDialog
         isOpen={isDialogOpen}
         onClose={handleDialogClose}
-        task={null}
-        onTaskCreated={() => {
-          handleDialogClose();
-          queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
-        }}
-        onTaskUpdated={() => {
-          handleDialogClose();
-          queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
-        }}
+        task={selectedTask}
+        onTaskCreated={handleTaskCreate}
+        onTaskUpdated={handleTaskUpdate}
       />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -152,6 +168,20 @@ export function TasksClient() {
             }`}>
               {task.status}
             </span>
+            <div className="mt-2 flex gap-2">
+              <button
+                onClick={() => handleTaskClick(task)}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleTaskDelete(task.id)}
+                className="text-red-600 hover:text-red-800"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
