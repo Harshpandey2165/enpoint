@@ -1,3 +1,10 @@
+/**
+ * Login Page
+ *
+ * This page allows users to sign in to their account.
+ *
+ * @returns {JSX.Element} The login page component.
+ */
 'use client';
 
 import { useState } from 'react';
@@ -6,11 +13,25 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
-export default function LoginClient() {
+/**
+ * Login Page Component
+ *
+ * This component handles the login form submission and redirects the user to the tasks page upon successful login.
+ *
+ * @returns {JSX.Element} The login page component.
+ */
+export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  /**
+   * Handle Form Submission
+   *
+   * This function handles the login form submission, sends a POST request to the API, and redirects the user to the tasks page upon successful login.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} e The form submission event.
+   */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -46,7 +67,7 @@ export default function LoginClient() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
