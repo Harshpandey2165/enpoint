@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Task } from './types';
 import { Button } from '@/components/ui/Button';
 import { TaskDialog } from '@/components/TaskDialog';
@@ -46,7 +46,6 @@ const fetchTasks = async (): Promise<FetchTasksResponse> => {
 };
 
 const useTasksQuery = () => {
-  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ['tasks'] as const,
     queryFn: fetchTasks,
@@ -54,6 +53,73 @@ const useTasksQuery = () => {
     enabled: !!localStorage.getItem('token'),
     retry: 1,
     staleTime: 5 * 60 * 1000 // 5 minutes
+  });
+};
+
+const useCreateTaskMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (taskData: Omit<Task, 'id' | 'created_at'>) => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(taskData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create task');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
+    }
+  });
+};
+
+const useUpdateTaskMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ taskId, status }: { taskId: string; status: Task['status'] }) => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
+    }
+  });
+};
+
+const useDeleteTaskMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
+    }
   });
 };
 
@@ -72,71 +138,9 @@ export function TasksClient() {
 
   const { data: tasks = [], error: fetchError, isLoading } = useTasksQuery();
 
-  const createTaskMutation = useMutation({
-    mutationFn: async (taskData: Omit<Task, 'id' | 'created_at'>) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(taskData),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to create task');
-      }
-      return response.json() as Promise<Task>;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    },
-    onError: (error: Error) => {
-      console.error('Error creating task:', error);
-    }
-  });
-
-  const updateTaskMutation = useMutation({
-    mutationFn: async ({ taskId, status }: { taskId: string; status: Task['status'] }) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ status }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update task');
-      }
-      return response.json() as Promise<Task>;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    },
-    onError: (error: Error) => {
-      console.error('Error updating task:', error);
-    }
-  });
-
-  const deleteTaskMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to delete task');
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    },
-    onError: (error: Error) => {
-      console.error('Error deleting task:', error);
-    }
-  });
+  const createTaskMutation = useCreateTaskMutation();
+  const updateTaskMutation = useUpdateTaskMutation();
+  const deleteTaskMutation = useDeleteTaskMutation();
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -154,6 +158,10 @@ export function TasksClient() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     window.location.href = '/login';
+  };
+
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
   };
 
   useEffect(() => {
@@ -255,7 +263,7 @@ export function TasksClient() {
                                 Edit
                               </button>
                               <button
-                                onClick={() => deleteTaskMutation.mutate(task.id)}
+                                onClick={() => deleteTaskMutation.mutateAsync(task.id)}
                                 className="text-red-600 hover:text-red-800"
                               >
                                 Delete
@@ -274,14 +282,15 @@ export function TasksClient() {
 
       <TaskDialog
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        task={selectedTask}
-        onCreate={(taskData: Omit<Task, 'id' | 'created_at'>) => {
-          createTaskMutation.mutate(taskData);
-          setIsDialogOpen(false);
+        onClose={handleDialogClose}
+        task={activeTask}
+        onTaskCreated={() => {
+          handleDialogClose();
+          queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
         }}
-        onUpdate={(taskId: string, data: Partial<Task>) => {
-          updateTaskMutation.mutate({ taskId, status: data.status as Task['status'] });
+        onTaskUpdated={() => {
+          handleDialogClose();
+          queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
         }}
       />
     </div>

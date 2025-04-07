@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -12,48 +12,86 @@ export interface Task {
   created_at: string;
 }
 
-export interface TaskDialogProps {
+interface TaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
   task: Task | null;
-  onCreate: (taskData: Omit<Task, 'id' | 'created_at'>) => void;
-  onUpdate: (taskId: string, data: Partial<Task>) => void;
+  onTaskCreated: () => void;
+  onTaskUpdated: () => void;
 }
 
-export function TaskDialog({ isOpen, onClose, task, onCreate, onUpdate }: TaskDialogProps) {
-  const queryClient = useQueryClient();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+export function TaskDialog({
+  isOpen,
+  onClose,
+  task,
+  onTaskCreated,
+  onTaskUpdated,
+}: TaskDialogProps) {
+  const [title, setTitle] = useState(task?.title ?? '');
+  const [description, setDescription] = useState(task?.description ?? '');
+  const [status, setStatus] = useState<Task['status']>(task?.status ?? 'TODO');
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatus(e.target.value as Task['status']);
+  };
 
-    const formData = new FormData(e.currentTarget);
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-    const status = formData.get('status') as Task['status'];
-
-    try {
-      if (task) {
-        onUpdate(task.id, {
+  const updateTaskMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${task?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
           title,
           description,
           status,
-        });
-      } else {
-        onCreate({
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      onTaskUpdated();
+      onClose();
+    },
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
           title,
           description,
-          status: 'TODO',
-        });
+          status,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create task');
       }
+      return response.json();
+    },
+    onSuccess: () => {
+      onTaskCreated();
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setIsLoading(false);
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (task) {
+      await updateTaskMutation.mutateAsync();
+    } else {
+      await createTaskMutation.mutateAsync();
     }
   };
 
@@ -80,16 +118,11 @@ export function TaskDialog({ isOpen, onClose, task, onCreate, onUpdate }: TaskDi
           </Dialog.Title>
 
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            {error && (
-              <div className="rounded-md bg-red-50 p-4">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
-
             <Input
               label="Title"
               name="title"
-              defaultValue={task?.title}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               required
               placeholder="Enter task title"
             />
@@ -97,7 +130,8 @@ export function TaskDialog({ isOpen, onClose, task, onCreate, onUpdate }: TaskDi
             <Input
               label="Description"
               name="description"
-              defaultValue={task?.description}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               required
               placeholder="Enter task description"
             />
@@ -109,7 +143,8 @@ export function TaskDialog({ isOpen, onClose, task, onCreate, onUpdate }: TaskDi
                 </label>
                 <select
                   name="status"
-                  defaultValue={task.status}
+                  value={status}
+                  onChange={handleStatusChange}
                   className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                 >
                   <option value="TODO">To Do</option>
@@ -129,7 +164,6 @@ export function TaskDialog({ isOpen, onClose, task, onCreate, onUpdate }: TaskDi
               </Button>
               <Button
                 type="submit"
-                isLoading={isLoading}
               >
                 {task ? 'Update' : 'Create'}
               </Button>
