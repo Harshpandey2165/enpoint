@@ -4,61 +4,26 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
-type Task = {
+export interface Task {
   id: string;
   title: string;
   description: string;
   status: 'TODO' | 'IN_PROGRESS' | 'DONE';
-};
+  created_at: string;
+}
 
-type TaskDialogProps = {
+export interface TaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
   task: Task | null;
-};
+  onCreate: (taskData: Omit<Task, 'id' | 'created_at'>) => void;
+  onUpdate: (taskId: string, data: Partial<Task>) => void;
+}
 
-export function TaskDialog({ isOpen, onClose, task }: TaskDialogProps) {
+export function TaskDialog({ isOpen, onClose, task, onCreate, onUpdate }: TaskDialogProps) {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const createTaskMutation = useMutation({
-    mutationFn: async (newTask: Omit<Task, 'id'>) => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(newTask),
-      });
-      if (!res.ok) throw new Error('Failed to create task');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      onClose();
-    },
-  });
-
-  const updateTaskMutation = useMutation({
-    mutationFn: async (updatedTask: Partial<Task> & { id: string }) => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${updatedTask.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(updatedTask),
-      });
-      if (!res.ok) throw new Error('Failed to update task');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      onClose();
-    },
-  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -72,19 +37,19 @@ export function TaskDialog({ isOpen, onClose, task }: TaskDialogProps) {
 
     try {
       if (task) {
-        await updateTaskMutation.mutateAsync({
-          id: task.id,
+        onUpdate(task.id, {
           title,
           description,
           status,
         });
       } else {
-        await createTaskMutation.mutateAsync({
+        onCreate({
           title,
           description,
           status: 'TODO',
         });
       }
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
