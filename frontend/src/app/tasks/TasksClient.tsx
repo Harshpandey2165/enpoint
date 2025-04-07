@@ -5,7 +5,6 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Task } from './types';
 import { Button } from '@/components/ui/Button';
 import { TaskDialog } from '@/components/TaskDialog';
-import { DragEndEvent } from '@dnd-kit/core';
 
 interface FetchTasksResponse {
   tasks: Task[];
@@ -102,9 +101,6 @@ export function TasksClient() {
   const queryClient = useQueryClient();
 
   const { data: tasks = [], error: fetchError, isLoading } = useTasksQuery();
-  const createTaskMutation = useCreateTaskMutation();
-  const updateTaskMutation = useUpdateTaskMutation();
-  const deleteTaskMutation = useDeleteTaskMutation();
 
   const handleTaskClick = (task: Task) => {
     setIsDialogOpen(true);
