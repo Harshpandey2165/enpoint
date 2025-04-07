@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import TasksClient from './TasksClient';
+import { TasksClient } from './TasksClient';
 
 export const metadata: Metadata = {
   title: 'Task Management',
