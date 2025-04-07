@@ -1,11 +1,15 @@
 [services]
-main = { repository = "https://github.com/Harshpandey2165/enpoint", directory = "backend" }
-frontend = { repository = "https://github.com/Harshpandey2165/enpoint", directory = "frontend" }
+main = { repository = "https://github.com/Harshpandey2165/enpoint", directory = "backend", type = "nodejs" }
+frontend = { repository = "https://github.com/Harshpandey2165/enpoint", directory = "frontend", type = "nextjs" }
 
 [deployments]
-main = { service = "main" }
-frontend = { service = "frontend" }
+main = { service = "main", port = 3001 }
+frontend = { service = "frontend", port = 3000 }
 
 [healthchecks]
-main = "/health"
-frontend = "/health"
+main = { path = "/health", interval = "30s", timeout = "5s" }
+frontend = { path = "/health", interval = "30s", timeout = "5s" }
+
+[environment]
+main = { NODE_ENV = "production", PORT = "3001" }
+frontend = { NODE_ENV = "production", PORT = "3000" }
