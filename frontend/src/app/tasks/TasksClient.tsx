@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DndContext, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/Button';
 import { TaskDialog } from '@/components/TaskDialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +26,7 @@ export default function TasksClient() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -79,16 +81,35 @@ export default function TasksClient() {
     },
   });
 
-  const handleDragEnd = (result: import('react-beautiful-dnd').DropResult) => {
-    if (!result.destination) return;
-
-    const taskId = result.draggableId;
-    const newStatus = result.destination.droppableId as Task['status'];
-    
-    const task = tasks.find(t => t.id === taskId);
-    if (task && task.status !== newStatus) {
-      updateTaskMutation.mutate({ id: taskId, status: newStatus });
+  const handleDragStart = (event: DragStartEvent) => {
+    const taskId = event.active.id as string;
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) {
+      setActiveTask(task);
     }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) {
+      return;
+    }
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeTask = tasks.find((t) => t.id === activeId);
+    const overTask = tasks.find((t) => t.id === overId);
+
+    if (!activeTask || !overTask) {
+      return;
+    }
+
+    // Update task status based on drop location
+    updateTaskMutation.mutate({
+      id: activeId,
+      status: overTask.status,
+    });
   };
 
   const handleLogout = () => {
@@ -102,98 +123,87 @@ export default function TasksClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-900">Task Management</h1>
-          <div className="flex gap-4">
-            <Button
-              onClick={() => {
-                setSelectedTask(null);
-                setIsDialogOpen(true);
-              }}
-            >
-              Add Task
-            </Button>
-            <Button variant="secondary" onClick={handleLogout}>
-              Logout
-            </Button>
+    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 className="text-2xl font-semibold text-gray-900">Task Management</h1>
+            <div className="flex gap-4">
+              <Button
+                onClick={() => {
+                  setSelectedTask(null);
+                  setIsDialogOpen(true);
+                }}
+              >
+                Add Task
+              </Button>
+              <Button variant="secondary" onClick={handleLogout}>
+                Logout
+              </Button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <DragDropContext onDragEnd={handleDragEnd}>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {Object.entries(columns).map(([status, { title, color }]) => (
               <div key={status} className="space-y-4">
                 <h2 className="text-lg font-medium text-gray-900">{title}</h2>
-                <Droppable droppableId={status}>
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`${color} p-4 rounded-lg min-h-[200px]`}
-                    >
-                      {tasks
-                        .filter((task) => task.status === status)
-                        .map((task, index) => (
-                          <Draggable
-                            key={task.id}
-                            draggableId={task.id}
-                            index={index}
-                          >
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className="bg-white p-4 rounded-lg shadow mb-3 cursor-pointer hover:shadow-md transition-shadow"
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <h3 className="font-medium">{task.title}</h3>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                      {task.description}
-                                    </p>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => {
-                                        setSelectedTask(task);
-                                        setIsDialogOpen(true);
-                                      }}
-                                      className="text-blue-600 hover:text-blue-800"
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      onClick={() => deleteTaskMutation.mutate(task.id)}
-                                      className="text-red-600 hover:text-red-800"
-                                    >
-                                      Delete
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
+                <div className="space-y-2">
+                  {tasks
+                    .filter((task) => task.status === status)
+                    .map((task) => (
+                      <div
+                        key={task.id}
+                        className="p-4 bg-white rounded-lg shadow"
+                        data-id={task.id}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium">{task.title}</h3>
+                            <p className="text-sm text-gray-500 mt-1">{task.description}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedTask(task);
+                                setIsDialogOpen(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteTaskMutation.mutate(task.id)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
               </div>
             ))}
           </div>
-        </DragDropContext>
-      </main>
+        </main>
 
-      <TaskDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        task={selectedTask}
-      />
-    </div>
+        <DragOverlay>
+          {activeTask && (
+            <div className="p-4 bg-white rounded-lg shadow">
+              <h4 className="font-medium">{activeTask.title}</h4>
+              <p className="text-sm text-gray-600 mt-1">{activeTask.description}</p>
+            </div>
+          )}
+        </DragOverlay>
+
+        <TaskDialog
+          isOpen={isDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
+          task={selectedTask}
+        />
+      </div>
+    </DndContext>
   );
 }
