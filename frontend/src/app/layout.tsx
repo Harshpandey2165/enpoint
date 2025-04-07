@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Providers } from "./providers";
 import "./globals.css";
 
 const geist = Geist({
@@ -12,8 +12,6 @@ export const metadata: Metadata = {
   description: "A modern task management application",
 };
 
-const queryClient = new QueryClient();
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -22,9 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geist.className} antialiased bg-gray-50`}>
-        <QueryClientProvider client={queryClient}>
+        <Providers>
           {children}
-        </QueryClientProvider>
+        </Providers>
       </body>
     </html>
   );
