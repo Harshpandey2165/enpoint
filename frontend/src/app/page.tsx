@@ -1,8 +1,5 @@
-'use client';
-
 import { Metadata } from 'next';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Redirecting...',
@@ -10,11 +7,6 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.push('/login');
-  }, [router]);
-
+  redirect('/login');
   return null;
 }
