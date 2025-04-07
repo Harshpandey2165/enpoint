@@ -5,7 +5,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-const Input = forwardRef<HTMLInputElement, InputProps>(
+export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, className = '', ...props }, ref) => {
     return (
       <div className="space-y-1">
@@ -31,3 +31,5 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     );
   }
 );
+
+Input.displayName = 'Input';
