@@ -1,0 +1,28 @@
+{
+  "services": [
+    {
+      "type": "web",
+      "name": "enpoint-frontend",
+      "buildCommand": "npm install && npm run build",
+      "startCommand": "npm run start",
+      "env": {
+        "NEXT_PUBLIC_API_URL": "https://enpoint-backend.onrender.com"
+      },
+      "rootDirectory": "frontend",
+      "port": 3000
+    },
+    {
+      "type": "web",
+      "name": "enpoint-backend",
+      "buildCommand": "npm install",
+      "startCommand": "npm run start:prod",
+      "env": {
+        "PORT": "3001",
+        "JWT_SECRET": "your-secret-key-here",
+        "DATABASE_URL": "postgresql://user:password@host:port/database"
+      },
+      "rootDirectory": "backend",
+      "port": 3001
+    }
+  ]
+}
