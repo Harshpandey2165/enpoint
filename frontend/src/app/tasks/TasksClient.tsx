@@ -106,6 +106,10 @@ export function TasksClient() {
   const updateTaskMutation = useUpdateTaskMutation();
   const deleteTaskMutation = useDeleteTaskMutation();
 
+  const handleRefetch = () => {
+    queryClient.invalidateQueries({ queryKey: ['tasks'] as const });
+  };
+
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
     setIsDialogOpen(true);
@@ -114,6 +118,7 @@ export function TasksClient() {
   const handleDialogClose = () => {
     setIsDialogOpen(false);
     setSelectedTask(undefined);
+    handleRefetch();
   };
 
   const handleTaskCreate = (taskData: Omit<Task, 'id' | 'created_at'>) => {
