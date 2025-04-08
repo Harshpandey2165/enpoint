@@ -23,7 +23,7 @@ const useTasksQuery = () => {
     queryKey: ['tasks'] as const,
     queryFn: fetchTasks,
     select: (data: FetchTasksResponse) => data.tasks,
-    enabled: !!localStorage.getItem('token'),
+    enabled: typeof window !== 'undefined' && !!localStorage.getItem('token'),
     retry: 1,
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
@@ -37,7 +37,7 @@ const useCreateTaskMutation = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
         },
         body: JSON.stringify(taskData),
       });
@@ -60,7 +60,7 @@ const useUpdateTaskMutation = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
         },
         body: JSON.stringify({ status }),
       });
@@ -82,7 +82,7 @@ const useDeleteTaskMutation = () => {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
         },
       });
       if (!response.ok) {
@@ -133,6 +133,10 @@ export function TasksClient() {
   const handleTaskDelete = (taskId: string) => {
     deleteTaskMutation.mutate(taskId);
   };
+
+  if (typeof window === 'undefined') {
+    return <div>Loading...</div>;
+  }
 
   if (isLoading) {
     return <div>Loading...</div>;
